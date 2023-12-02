@@ -52,6 +52,16 @@ const AudioScreen = () => {
     setIsRecording(true);
     setIsPlaying(false);
 
+    await Audio.setAudioModeAsync({
+            allowsRecordingIOS: true,
+            interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+            playsInSilentModeIOS: true,
+            shouldDuckAndroid: true,
+            interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+            playThroughEarpieceAndroid: false,
+            staysActiveInBackground: true,
+          });
+
     try {
       const newRecording = new Audio.Recording();
       await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
