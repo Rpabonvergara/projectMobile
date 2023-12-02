@@ -56,7 +56,6 @@ export const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 20,
     color: '#333',
-    fontFamily: 'Times New Roman',
     fontStyle: 'italic',
 
   },
@@ -106,8 +105,7 @@ export const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: 'bold', 
-    fontFamily: 'Times New Roman',   
+    fontWeight: 'bold',
     fontStyle: 'italic',
   },
 

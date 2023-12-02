@@ -1,126 +1,135 @@
 import React, { useState } from 'react';
-
-import { View, TextInput, Text, Button, Alert, StyleSheet } from 'react-native';
-import { db, firestore, auth } from '../firebaseConfig';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import {ref, set, get, onValue} from 'firebase/database';
-import {doc, setDoc, getDoc, onSnapshot} from 'firebase/firestore';
-
-import { styles } from '../styles/styles';
+import { View, TextInput, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, firestore } from '../firebaseConfig';
+import { FontAwesome } from '@expo/vector-icons';
 
 const RegistrationScreen = (props) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  [firstName, setFirstName] = useState('');
-  [lastName, setLastName] = useState('');
-  [email, setEmail] = useState('');
-  [password, setPassword] = useState('');
-
-  registerWithFirebase = () => {
-
-    if (!firstName.trim()) {
-      Alert.alert('Please enter your First Name.');
-      return;
-    }
-    
-    if (!lastName.trim()) {
-      Alert.alert('Please enter your Last Name.');
+  const registerWithFirebase = () => {
+    if (!firstName.trim() || !lastName.trim() || email.length < 4 || password.length < 4) {
+      Alert.alert('Please fill out all fields.');
       return;
     }
 
-    if (email.length < 4) {
-      Alert.alert('Please enter an email address.');
-      return;
-    }
-
-    if (password.length < 4) {
-      Alert.alert('Please enter a valid password (More than 3 Characters) ');
-      return;
-    }
-
-
-    createUserWithEmailAndPassword(auth, email, password,)
-      .then(function (_firebaseUser) {       
-        setTimeout(saveUserWithFirebase, 400);
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(async (_firebaseUser) => {
+        await saveUserWithFirebase();
       })
-      .catch(function (error) {
+      .catch((error) => {
         console.log(email);
-        var errorCode = error.code;
-        var errorMessage = error.message;
+        const errorCode = error.code;
+        const errorMessage = error.message;
 
-        if (errorCode == 'auth/weak-password') {
+        if (errorCode === 'auth/weak-password') {
           Alert.alert('The password is too weak.');
-        }
-        else {
+        } else {
           Alert.alert(errorMessage);
         }
         console.log(error);
-      }
-      );
-  }
+      });
+  };
 
-  saveUserWithFirebase = () =>
-  {
-    var userID = auth.currentUser.uid;
+  const saveUserWithFirebase = async () => {
+    const userID = auth.currentUser.uid;
 
-     // SAVE USER TO FIRESTORE
+    // SAVE USER TO FIRESTORE
 
-    setDoc(doc(firestore, 'users/' + userID),{
-      FirstName : firstName,
-      LastName : lastName,
-      Email : email
-    },
-    {
-      merge : true
-    })
-    .then(()=>{
-      Alert.alert('User Succesfully Saved')
-      props.navigation.navigate('ScreenOne'); 
-    })
-    .catch(()=>{
-      Alert.alert('Error Saving User');
-      console.log(error)
-    })
-  }
+    try {
+      await setDoc(doc(firestore, 'users', userID), {
+        FirstName: firstName,
+        LastName: lastName,
+        Email: email,
+      });
 
-    return (
-      <View style={styles.container}>
-            <Text style={styles.label}>Complete the form</Text>
-            <TextInput
-              style={styles.textInput}
-              onChangeText={(value) => setFirstName(value)}
-              placeholder="First Name"
-            />
-            <TextInput
-              style={styles.textInput}
-              onChangeText={(value) => setLastName(value)}
-              placeholder="Last Name"
-            />
-            <TextInput
-              style={styles.textInput}
-              onChangeText={ (value) => setEmail(value) }
-              autoCapitalize="none"
-              autoCorrect = {false}
-              autoCompleteType="email"
-              keyboardType="email-address"
-              placeholder="email"
-            />
-            <TextInput
-              style={styles.textInput}
-              onChangeText={(value) => setPassword(value)}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoCompleteType="password"
-              keyboardType="default"
-              placeholder="Password"
-              secureTextEntry={true}
-            />
-              <View style={styles.buttonContainer}>
-                <Button style={styles.button} title="Register" onPress={registerWithFirebase} />
-              </View>
-          </View>
-    );
-}
+      Alert.alert('User successfully saved!');
+      props.navigation.navigate('ScreenOne');
+    } catch (error) {
+      Alert.alert('Error saving user');
+      console.log(error);
+    }
+  };
 
+  return (
+    <View style={styles.container}>
+      <FontAwesome name="user-circle" size={100} color="#3498db" style={styles.icon} />
+      <Text style={styles.label}>Complete the form</Text>
+      <TextInput
+        style={styles.input}
+        onChangeText={(value) => setFirstName(value)}
+        placeholder="First Name"
+      />
+      <TextInput
+        style={styles.input}
+        onChangeText={(value) => setLastName(value)}
+        placeholder="Last Name"
+      />
+      <TextInput
+        style={styles.input}
+        onChangeText={(value) => setEmail(value)}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoCompleteType="email"
+        keyboardType="email-address"
+        placeholder="Email"
+      />
+      <TextInput
+        style={styles.input}
+        onChangeText={(value) => setPassword(value)}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoCompleteType="password"
+        keyboardType="default"
+        placeholder="Password"
+        secureTextEntry={true}
+      />
+      <TouchableOpacity style={styles.buttonContainer} onPress={registerWithFirebase}>
+        <Text style={styles.buttonText}>Register</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  icon: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  input: {
+    height: 40,
+    width: '100%',
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 12,
+    paddingLeft: 8,
+  },
+  buttonContainer: {
+    backgroundColor: '#3498db',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+});
 
 export default RegistrationScreen;
