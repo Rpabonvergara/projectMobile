@@ -65,11 +65,11 @@ const WelcomeScreen = (props) => {
     <View style={styleWelcomes.container}>
       <Animated.View style={{ opacity: logoOpacity, marginBottom: 20, flexDirection: 'row' }}>
         <View style={styleWelcomes.iconContainer}>
-          <MaterialIcons name="headset" size={80} color="#333" style={styleWelcomes.icon} />
+          <MaterialIcons name="headset" size={120} color="#333" style={styleWelcomes.icon} />
           <Text style={styleWelcomes.iconText}>Audio</Text>
         </View>
         <View style={styleWelcomes.iconContainer}>
-          <Ionicons name="md-image" size={80} color="#333" style={styleWelcomes.icon} />
+          <Ionicons name="md-image" size={120} color="#333" style={styleWelcomes.icon} />
           <Text style={styleWelcomes.iconText}>Image</Text>
         </View>
       </Animated.View>
@@ -152,4 +152,9 @@ const styleWelcomes = StyleSheet.create({
     color: 'blue',
     fontWeight: 'bold',
   },
+  textInput: {
+      fontSize: 20,
+      height: Platform.OS === 'android' ? 40 : 40, // Adjust the height for Android
+      textAlignVertical: 'center', // Center the text vertically on Android
+    },
 });

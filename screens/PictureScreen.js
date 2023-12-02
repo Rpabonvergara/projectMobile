@@ -64,7 +64,7 @@ const PictureScreen = () => {
             imageUrl: result.assets[0].uri,
             userId: currentUser.uid,
           });
-          setImages((prevImages) => [...prevImages, { id: imageRef.id, imageUrl: result.assets[0].uri }]);
+          //setImages((prevImages) => [...prevImages, { id: imageRef.id, imageUrl: result.assets[0].uri }]);
         }
       } catch (error) {
         console.error('Error picking image', error);
