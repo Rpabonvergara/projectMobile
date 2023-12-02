@@ -151,9 +151,11 @@ const PictureScreen = () => {
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity onPress={() => handleImageOptions(item.id, item.imageUrl)}>
-      <Image source={{ uri: item.imageUrl }} style={stylePictures.imageThumbnail} />
-    </TouchableOpacity>
+    <View style={stylePictures.pictureItem}>
+        <TouchableOpacity onPress={() => handleImageOptions(item.id, item.imageUrl)}>
+          <Image source={{ uri: item.imageUrl }} style={stylePictures.imageThumbnail} />
+        </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -173,7 +175,6 @@ const PictureScreen = () => {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           numColumns={2}
-          contentContainerStyle={stylePictures.flatListContainer}
         />
       )}
     </View>
@@ -207,6 +208,13 @@ const stylePictures = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  pictureItem: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: 10,
+          borderBottomWidth: 1,
+          borderBottomColor: '#ccc',
+        },
 });
 
 export default PictureScreen;
