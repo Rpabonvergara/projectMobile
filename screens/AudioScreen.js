@@ -187,7 +187,7 @@ const AudioScreen = () => {
     return `${formattedMinutes}:${formattedSeconds}`;
   };
 
-  const handleAudioOptions = (id, imageUrl) => {
+  const handleAudioOptions = (id, audioUrl) => {
       Alert.alert(
         'Confirmation',
         'What do you plan to do with the audio?',
@@ -195,7 +195,7 @@ const AudioScreen = () => {
           {
             text: 'Share Via Email',
             onPress: async () => {
-              sendMessageWithMail(imageUrl);
+              sendMessageWithMail(audioUrl);
             },
           },
           {
