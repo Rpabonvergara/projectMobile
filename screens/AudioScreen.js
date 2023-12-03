@@ -4,6 +4,7 @@ import Progress from 'react-native-progress/Bar';
 import { auth, firestore } from '../firebaseConfig';
 import { onSnapshot, collection, deleteDoc, addDoc, doc, where, query } from 'firebase/firestore';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import * as MailComposer from 'expo-mail-composer';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 const AudioScreen = () => {
