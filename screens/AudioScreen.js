@@ -187,6 +187,30 @@ const AudioScreen = () => {
     return `${formattedMinutes}:${formattedSeconds}`;
   };
 
+  const sendMessageWithMail = async (audioUrl) => {
+    const isAvailable = await MailComposer.isAvailableAsync();
+
+    if (isAvailable) {
+      var options = {
+        subject: 'Check out this audio!',
+        body: `I wanted to share this audio with you.`,
+        attachments: [audioUrl],
+      };
+
+      MailComposer.composeAsync(options)
+        .then((result) => {
+          console.log(result.status);
+          Alert.alert('Email Sent', 'The audio has been sent successfully.');
+        })
+        .catch((error) => {
+          console.error('Error sending email', error);
+          Alert.alert('Error', 'Failed to send email');
+        });
+    } else {
+      Alert.alert('Email is not available');
+    }
+  };
+
   const handleAudioOptions = (id, audioUrl) => {
       Alert.alert(
         'Confirmation',
