@@ -8,7 +8,6 @@ import * as MailComposer from 'expo-mail-composer';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 const AudioScreen = () => {
-
   const currentUser = auth.currentUser;
   const [recordings, setRecordings] = useState([]);
   const [recording, setRecording] = useState(null);
@@ -24,20 +23,20 @@ const AudioScreen = () => {
   const [uploadError, setUploadError] = useState(null);
 
   useEffect(() => {
-      if (!currentUser) {
-        return;
+    if (!currentUser) {
+      return;
+    }
+
+    const unsubscribe = onSnapshot(
+      query(collection(firestore, 'audios'), where('userId', '==', currentUser.uid)),
+      (snapshot) => {
+        const recordingsData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setRecordings(recordingsData);
       }
+    );
 
-      const unsubscribe = onSnapshot(
-        query(collection(firestore, 'audios'), where('userId', '==', currentUser.uid)),
-        (snapshot) => {
-          const recordingsData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-          setRecordings(recordingsData);
-        }
-      );
-
-      return () => unsubscribe();
-    }, [currentUser]);
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const verifyPermissions = async () => {
     const result = await Audio.requestPermissionsAsync();
@@ -54,19 +53,19 @@ const AudioScreen = () => {
     setIsPlaying(false);
 
     await Audio.setAudioModeAsync({
-            allowsRecordingIOS: true,
-            interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-            playsInSilentModeIOS: true,
-            shouldDuckAndroid: true,
-            interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-            playThroughEarpieceAndroid: false,
-            staysActiveInBackground: true,
-          });
+      allowsRecordingIOS: true,
+      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+      playThroughEarpieceAndroid: false,
+      staysActiveInBackground: true,
+    });
 
     try {
       const newRecording = new Audio.Recording();
       await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      newRecording.startAsync();
+      await newRecording.startAsync();
       setRecording(newRecording);
       console.log('Recording started');
     } catch (error) {
@@ -83,10 +82,12 @@ const AudioScreen = () => {
     }
 
     setIsRecording(false);
+    setIsPlaying(false);
+    setIsPaused(true);
     setStopRecord(true);
   };
 
-  const playRecordedAudio = async (audioUrl) => {
+  const playRecordedAudioFirebase = async (audioUrl) => {
     setIsPlaying(true);
     setIsPaused(false);
 
@@ -136,23 +137,24 @@ const AudioScreen = () => {
   };
 
   const resumePlayingRecordedAudio = async () => {
+    playRecordedAudioFirebase(recording.getURI());
     if (soundObject && isPaused) {
-      await soundObject.playAsync();
-      setIsPaused(false);
-      setIsPlaying(true);
-      console.log('Playing resumed');
-    }
+          await soundObject.playAsync();
+          setIsPaused(false);
+          setIsPlaying(true);
+          console.log('Playing resumed');
+        }
   };
 
   const stopPlayingRecordedAudio = async () => {
     try {
-      await recording.stopAndUnloadAsync();
-      console.log('Recording stopped and saved at:', recording.getURI());
+      await soundObject.stopAsync();
+      console.log('Playing stopped');
     } catch (error) {
       console.log('An error has occurred', error);
     }
 
-    setIsPlaying(true);
+    setIsPlaying(false);
     setIsPaused(false);
 
     setShowRecordedAudio(false);
@@ -169,7 +171,7 @@ const AudioScreen = () => {
       });
 
       console.log('Recording uploaded to Firebase');
-      setUploadError(null); // Clear any previous upload error
+      setUploadError(null);
     } catch (error) {
       setUploadError('Error uploading audio to Firebase');
       console.log('An error occurred during upload', error);
@@ -213,62 +215,61 @@ const AudioScreen = () => {
   };
 
   const handleAudioOptions = (id, audioUrl) => {
-      Alert.alert(
-        'Confirmation',
-        'What do you plan to do with the audio?',
-        [
-          {
-            text: 'Share Via Email',
-            onPress: async () => {
-              sendMessageWithMail(audioUrl);
-            },
+    Alert.alert(
+      'Confirmation',
+      'What do you plan to do with the audio?',
+      [
+        {
+          text: 'Share Via Email',
+          onPress: async () => {
+            sendMessageWithMail(audioUrl);
           },
-          {
-            text: 'Delete',
-            onPress: async () => {
-              handleDeleteAudio(id);
-              Alert.alert('Audio Delete', 'Audio Deleted successfully!');
-            },
+        },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            handleDeleteAudio(id);
+            Alert.alert('Audio Delete', 'Audio Deleted successfully!');
           },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-        ],
-        { cancelable: false }
-      );
-    };
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: false }
+    );
+  };
 
-    const handleDeleteAudio = async (id) => {
-        try {
-          await deleteDoc(doc(firestore, 'audios', id));
-          setRecordings((prevAudios) => prevAudios.filter((audio) => audio.id !== id));
-        } catch (error) {
-          console.error('Error deleting audio', error);
-          Alert.alert('Error', 'Failed to delete audto');
-        }
-      };
+  const handleDeleteAudio = async (id) => {
+    try {
+      await deleteDoc(doc(firestore, 'audios', id));
+      setRecordings((prevAudios) => prevAudios.filter((audio) => audio.id !== id));
+    } catch (error) {
+      console.error('Error deleting audio', error);
+      Alert.alert('Error', 'Failed to delete audio');
+    }
+  };
 
-    const getRandomColor = () => {
-      const letters = '0123456789ABCDEF';
-      let color = '#';
-      for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-      }
-      return color;
-    };
+  const getRandomColor = () => {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  };
 
   const renderItem = ({ item }) => (
     <View style={stylesAudio.recordingItem}>
       <TouchableOpacity
-            onPress={() => playRecordedAudio(item.audioUrl)}
-            onLongPress={() => handleAudioOptions(item.id, item.audioUrl)}
-            style={stylesAudio.playButton}>
+        onPress={() => playRecordedAudioFirebase(item.audioUrl)}
+        onLongPress={() => handleAudioOptions(item.id, item.audioUrl)}
+        style={stylesAudio.playButton}>
         <FontAwesome5 name="play" size={100} color={getRandomColor()} />
       </TouchableOpacity>
       <View style={stylesAudio.recordingInfo}>
         <Text style={stylesAudio.recordingText}>{item.id}</Text>
-        {/* Add any additional information or labels here */}
       </View>
     </View>
   );
@@ -291,11 +292,21 @@ const AudioScreen = () => {
         <View style={stylesAudio.buttonContainer}>
           {!stopRecord && !showRecordedAudio && (
             <>
-              <Button style={stylesAudio.button} color='red' title='Record' onPress={startRecordingAudio} />
-              <Button style={stylesAudio.button} color='red' title='Stop' onPress={() => {
-                stopRecordingAudio();
-                setShowRecordedAudio(true);
-              }} />
+              <Button
+                style={stylesAudio.button}
+                color="red"
+                title="Record"
+                onPress={startRecordingAudio}
+              />
+              <Button
+                style={stylesAudio.button}
+                color="red"
+                title="Stop"
+                onPress={() => {
+                  stopRecordingAudio();
+                  setShowRecordedAudio(true);
+                }}
+              />
             </>
           )}
         </View>
@@ -303,14 +314,23 @@ const AudioScreen = () => {
         <View style={stylesAudio.buttonContainer}>
           {stopRecord && showRecordedAudio && (
             <>
-              <TouchableOpacity style={stylesAudio.replayButton} onPress={isPaused ? resumePlayingRecordedAudio : pausePlayingRecordedAudio}>
-                <FontAwesome5 name={isPaused ? 'play' : 'pause'} size={30} color='black' />
+              <TouchableOpacity
+                style={stylesAudio.replayButton}
+                onPress={isPaused ? resumePlayingRecordedAudio : pausePlayingRecordedAudio}
+              >
+                <FontAwesome5 name={isPaused ? 'play' : 'pause'} size={30} color="black" />
               </TouchableOpacity>
-              <TouchableOpacity style={stylesAudio.replayButton} onPress={stopPlayingRecordedAudio}>
-                <FontAwesome5 name='stop' size={30} color='black' />
+              <TouchableOpacity
+                style={stylesAudio.replayButton}
+                onPress={stopPlayingRecordedAudio}
+              >
+                <FontAwesome5 name="stop" size={30} color="black" />
               </TouchableOpacity>
-              <TouchableOpacity style={stylesAudio.replayButton} onPress={uploadAudioToFirebase}>
-                <FontAwesome5 name='cloud-upload-alt' size={30} color='black' />
+              <TouchableOpacity
+                style={stylesAudio.replayButton}
+                onPress={uploadAudioToFirebase}
+              >
+                <FontAwesome5 name="cloud-upload-alt" size={30} color="black" />
               </TouchableOpacity>
             </>
           )}
@@ -322,7 +342,7 @@ const AudioScreen = () => {
               progress={progress}
               width={null} // Use null to fill the container
               height={10}
-              color='red'
+              color="red"
               indeterminate={false}
               style={{ marginTop: 1 }}
             />
@@ -331,17 +351,15 @@ const AudioScreen = () => {
             </Text>
           </View>
         )}
-        {uploadError && (
-          <Text style={{ color: 'red' }}>{uploadError}</Text>
-        )}
+        {uploadError && <Text style={{ color: 'red' }}>{uploadError}</Text>}
       </View>
 
-        <FlatList
-          data={recordings}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          numColumns={2}
-        />
+      <FlatList
+        data={recordings}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        numColumns={2}
+      />
     </View>
   );
 };
@@ -368,35 +386,35 @@ const stylesAudio = StyleSheet.create({
     color: '#fff',
   },
   textRecordTitle: {
-      fontSize: 30,
-      color: 'red',
-    },
+    fontSize: 30,
+    color: 'red',
+  },
   replayButton: {
-      padding: 10, // You can adjust the value to increase or decrease padding
-    },
+    padding: 10, // You can adjust the value to increase or decrease padding
+  },
   flatListContainer: {
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    recordingItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-      },
-      playButton: {
-        padding: 20,
-        borderRadius: 10,
-        backgroundColor: 'lightgray', // Adjust the color as needed
-        marginRight: 10,
-      },
-      recordingInfo: {
-        flex: 1,
-      },
-      recordingText: {
-        fontSize: 18,
-      },
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recordingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  playButton: {
+    padding: 20,
+    borderRadius: 10,
+    backgroundColor: 'lightgray', // Adjust the color as needed
+    marginRight: 10,
+  },
+  recordingInfo: {
+    flex: 1,
+  },
+  recordingText: {
+    fontSize: 18,
+  },
 });
 
 export default AudioScreen;
